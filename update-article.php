@@ -1,21 +1,27 @@
 <?php
 require_once "errors.php";
-$filename = "./data/data.json";
+$filename = './data/data.json';
+$_GET = filter_input_array(INPUT_GET, FILTER_VALIDATE_INT);
+$id = $_GET['id'] ?? '';
+
+if ($id) {
+    $articles = json_decode(file_get_contents($filename), true) ?? [];
+    if (count($articles)) {
+        $articleIndex = array_search($id, array_column($articles, 'id'));
+        $article_title = $articles[$articleIndex]['title'];
+        $article_description = $articles[$articleIndex]['description'];
+        $article_category = $articles[$articleIndex]['category'];
+        $article_img = $articles[$articleIndex]['imgPath'];
+        $article_id = $articles[$articleIndex]['id'];
+    }
+}
+
 $errors = [
     'title' => '',
     'img' => '',
     'category' => '',
     'description' => '',
 ];
-$articles = [];
-$article_title = '';
-$article_category = '';
-$article_description = '';
-
-if (file_exists($filename)) {
-    $data = file_get_contents($filename);
-    $articles = json_decode($data, true) ?? [];
-}
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $_POST = filter_input_array(INPUT_POST, [
@@ -34,13 +40,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             'flags' => FILTER_FLAG_NO_ENCODE_QUOTES | FILTER_FLAG_STRIP_BACKTICK
         ]
     ]);
-
-    
-
     $article_title = $_POST['title'] ?? '';
     $article_category = $_POST['category'] ?? '';
     $article_description = $_POST['description'] ?? '';
-    
+
     if(!$article_title){
         $errors['title'] = ERROR_REQUIRED_TITLE;
     }elseif(mb_strlen($article_title) < 7 ){
@@ -70,38 +73,35 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         && $imageFileType != "gif" ) {
         $errors['img'] = ERROR_FORMAT_IMG;
         }
-    
         
-    }else{
-        $errors['img'] = ERROR_REQUIRED_IMG;
+        if (empty(array_filter($errors, fn ($e) => $e !== ''))) {
+            unlink($article_img);
+            move_uploaded_file($_FILES["img"]["tmp_name"], $target_file);
+            $article_img = $target_file;
+        }
+        
     }
-
     if (empty(array_filter($errors, fn ($e) => $e !== ''))) {
-        
-        move_uploaded_file($_FILES["img"]["tmp_name"], $target_file);
-        
+        array_splice($articles, $articleIndex, 1);   
         $articles = [...$articles, [
             'title' => $article_title,
             'category' => $article_category,
             'description' => $article_description,
-            'imgPath' => $target_file,
-            'id' => time(),
+            'imgPath' => $article_img,
+            'id' => $article_id,
         ]];
         file_put_contents($filename, json_encode($articles));
-        $article_title = '';
-        $article_category = '';
-        $article_description = '';
+        header('Location: index.php');
     }
-    
+
 
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <?php require_once './includes/head.php';
-        echo ADD_ARTICLE_TITLE;
+        echo UPDATE_TITLE;
     ?>
     <link rel="stylesheet" href="./assets/css/add-article.css">
 </head>
@@ -110,21 +110,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <?php require_once './includes/header.php' ?>
         <div class="content">
             <div class="block p-20 form-container">
-                <h1>Ecrire un article</h1>
+                <h1>Modifier un article</h1>
                 <form enctype="multipart/form-data" action="" method="POST">
                     <div class="form-control">
                         <label for="title">Titre</label>
                         <input type="text" name="title" value="<?= $article_title ? $article_title : "" ?>">
                         <?php if($errors['title'] !== "") : ?>
                             <p class="text-danger"><?= $errors['title']?></p>
-                        <?php endif;?>
+                        <?php endif;?>           
                     </div>
                     <div class="form-control">
                         <label for="img">Image</label>
-                        <input type="file" name="img" id="img">
+                        <input type="file" name="img" id="img" value="<?= $article_img ? $article_img : "" ?>">
                         <?php if($errors['img'] !== "") : ?>
                             <p class="text-danger"><?= $errors['img']?></p>
-                        <?php endif;?>
+                        <?php endif;?>         
                     </div>
                     <div class="form-control">
                         <label for="category">Catégorie</label>
@@ -135,7 +135,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         </select>
                         <?php if($errors['category'] !== "") : ?>
                             <p class="text-danger"><?= $errors['category']?></p>
-                        <?php endif;?>
+                        <?php endif;?>                       
                     </div>
                     <div class="form-control">                
                         <label for="description">Description</label>

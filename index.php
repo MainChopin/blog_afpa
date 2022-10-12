@@ -24,7 +24,6 @@ if (file_exists($filename)) {
             <div class="flex">
                 <?php foreach ($articles as $article) :?>
                     <div class="p-50">
-
                         <div class="card">
                             <a href="">
                                 <div class="card-img">
@@ -35,9 +34,7 @@ if (file_exists($filename)) {
                                         <h3><?= $article['title']?></h3>
                                     </div>
                                     <div class="card-button">
-                                        <form action="" method="GET">
-                                            <button type="submit" class="btn">Détails</button>
-                                        </form>
+                                        <a href="view-article.php?id=<?= $article['id']?>"><button class="btn">Détails</button></a>
                                     </div>
                                 </div>
                             </a>

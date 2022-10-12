@@ -179,6 +179,7 @@ footer{
 
 .block{
     border-radius: 3px;
+    width: 100rem;
     border: var(--border);
     background-color: white;
     box-shadow: var(--box-shadow);

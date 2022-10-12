@@ -1,0 +1,1 @@
+<footer>2022 © Tous droits réservés</footer>
